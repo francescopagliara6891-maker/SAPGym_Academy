@@ -43,6 +43,12 @@ def init_connection():
 
 engine = init_connection()
 
+# --- ECCO LA FUNZIONE CHE MANCAVA ---
+def get_table_schema(table_name):
+    query = f"SELECT * FROM \"{table_name}\" LIMIT 3"
+    with engine.connect() as conn:
+        return pd.read_sql(text(query), conn)
+
 # --- 3. STRUTTURA DELL'ACADEMY (SIDEBAR) ---
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/SAP_2011_logo.svg/512px-SAP_2011_logo.svg.png", width=100)
