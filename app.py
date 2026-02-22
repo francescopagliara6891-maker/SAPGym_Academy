@@ -32,16 +32,16 @@ local_css()
 # --- 2. CONNESSIONE AL DATABASE ---
 @st.cache_resource
 def init_connection():
-    load_dotenv()
-    db_password = os.getenv("DB_PASSWORD")
-    return create_engine(f"postgresql+psycopg2://postgres:{db_password}@localhost:5432/sapgym_core")
+    try:
+        # Se siamo su Streamlit Cloud, prende la stringa dai Secrets
+        return create_engine(st.secrets["DATABASE_URL"])
+    except Exception:
+        # Se siamo sul tuo PC locale, prende la stringa dal file .env
+        load_dotenv()
+        db_url = os.getenv("DATABASE_URL")
+        return create_engine(db_url)
 
 engine = init_connection()
-
-def get_table_schema(table_name):
-    query = f"SELECT * FROM \"{table_name}\" LIMIT 3"
-    with engine.connect() as conn:
-        return pd.read_sql(text(query), conn)
 
 # --- 3. STRUTTURA DELL'ACADEMY (SIDEBAR) ---
 with st.sidebar:
