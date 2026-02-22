@@ -17,6 +17,7 @@ def local_css():
         h1, h2, h3, h4 { color: #2B7CE9 !important; } 
         .stButton>button { background-color: #0A6ED1 !important; color: white !important; border-radius: 0.5rem; border: none; font-weight: bold; }
         .stButton>button:hover { background-color: #0854A0 !important; color: white !important;}
+        .stAlert { border-left-color: #0A6ED1; }
         .dataframe { font-size: 14px; }
     </style>
     """, unsafe_allow_html=True)
@@ -35,7 +36,7 @@ def init_connection():
 
 engine = init_connection()
 
-# --- FUNZIONI DI SUPPORTO ---
+# --- FUNZIONI CORE ---
 def get_table_schema(table_name):
     query = f"SELECT * FROM \"{table_name}\" LIMIT 3"
     with engine.connect() as conn:
@@ -62,19 +63,18 @@ def write_audit_log(username, modulo, query_eseguita, status):
             conn.execute(text(create_table_sql))
             conn.execute(text(insert_sql))
             conn.commit()
-    except Exception as e:
+    except:
         pass 
 
-# --- 3. ASSEGNAZIONE ANONIMA GUEST ID ---
+# Gestione ID Anonimo per evitare paura di registrazione
 if 'username' not in st.session_state:
     st.session_state.username = f"GUEST_{random.randint(1000, 9999)}"
 
-# --- 4. STRUTTURA DELL'ACADEMY (SIDEBAR) ---
+# --- 3. SIDEBAR ---
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/SAP_2011_logo.svg/512px-SAP_2011_logo.svg.png", width=100)
-    st.markdown(f"**Utente connesso:** 🟢 `{st.session_state.username}`")
-    st.caption("*(Accesso ospite anonimo)*")
-    st.markdown("---")
+    st.markdown(f"## 🎓 Executive SAP Academy")
+    st.markdown(f"**Utente Attivo:** 🟢 `{st.session_state.username}`")
     
     modulo = st.radio("Seleziona Ambiente:", [
         "MM - Procure to Pay", 
@@ -88,9 +88,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 👨‍💻 Lead Architect")
     st.markdown("**Dott. Francesco Pagliara**")
-    st.caption("Ingegnere Gestionale")
-    st.caption("SAP Functional Analyst")
-    st.caption("*Master Cyber Security LUM*")
+    st.caption("Ingegnere Gestionale | SAP Analyst")
+    st.caption("Executive Master Cyber Security LUM")
 
 # =========================================================================
 # MODULO: MM PROCURE TO PAY
@@ -100,58 +99,49 @@ if modulo == "MM - Procure to Pay":
     tab_teoria, tab_dizionario, tab_pratica = st.tabs(["📚 Master Handbook", "🗄️ Data Dictionary", "⚔️ Live Sandbox"])
     
     with tab_teoria:
-        st.markdown("### 📘 Il Manuale del Data Analyst: Procurement")
-        st.markdown("#### 🟡 INTERMEDIATE LEVEL: Aggregazione Spesa")
-        st.write("Questa è la query fondamentale per ogni cruscotto acquisti: calcolare quanto abbiamo speso per ogni singolo fornitore.")
+        st.markdown("### 📘 Manuale MM: Integrazione Dati e Processi")
+        st.markdown("#### 🟢 BEGINNER: Struttura Documentale")
+        st.write("In SAP MM, ogni acquisto nasce da una Testata (`EKKO`) e si sviluppa in Posizioni (`EKPO`).")
+        st.code('SELECT "EBELN", "LIFNR", "AEDAT" FROM "EKKO" LIMIT 10;', language="sql")
+        st.markdown("""
+        * **EBELN (Einkaufsbelegnummer):** Numero univoco dell'ordine.
+        * **LIFNR (Lieferantennummer):** Codice del fornitore associato.
+        * **AEDAT (Änderungsdatum):** Data di creazione/modifica.
+        """)
+        
+        st.markdown("#### 🟡 INTERMEDIATE: Join Anagrafica e Spesa")
         st.code("""
-        SELECT lfa1."NAME1" AS "Fornitore", SUM(ekpo."NETWR") AS "Spesa Totale"
+        SELECT lfa1."NAME1" AS "Fornitore", SUM(ekpo."NETWR") AS "Totale"
         FROM "EKKO" ekko
         JOIN "EKPO" ekpo ON ekko."EBELN" = ekpo."EBELN"
         JOIN "LFA1" lfa1 ON ekko."LIFNR" = lfa1."LIFNR"
-        GROUP BY lfa1."NAME1" ORDER BY "Spesa Totale" DESC;
+        GROUP BY lfa1."NAME1";
         """, language="sql")
-        
-        st.markdown("#### 🔬 L'Anatomia della Query (Spiegazione Passo-Passo)")
         st.markdown("""
-        * **`SELECT lfa1."NAME1" AS "Fornitore"`**: `LFA1` è l'Anagrafica Fornitori SAP. `NAME1` è la Ragione Sociale. `AS "Fornitore"` serve per dare un nome leggibile alla colonna nel grafico.
-        * **`SUM(ekpo."NETWR") AS "Spesa Totale"`**: `EKPO` è la tabella delle Posizioni degli Ordini. `NETWR` è il Valore Netto in Euro. La funzione `SUM()` somma tutti i valori netti di un fornitore.
-        * **`FROM "EKKO" ekko`**: `EKKO` è la Testata dell'Ordine. Contiene i dati generali (chi compra, da chi, in che data).
-        * **`JOIN "EKPO" ekpo ON ekko."EBELN" = ekpo."EBELN"`**: Colleghiamo Testata e Riga usando la chiave `EBELN` (Numero Ordine di Acquisto).
-        * **`JOIN "LFA1" lfa1 ON ekko."LIFNR" = lfa1."LIFNR"`**: Colleghiamo l'Ordine all'Anagrafica usando la chiave `LIFNR` (Codice Fornitore) per estrarre il nome testuale dell'azienda, che in EKKO non c'è.
+        * **LFA1."NAME1":** Ragione sociale del fornitore. Senza questa JOIN, vedresti solo codici numerici.
+        * **EKPO."NETWR":** Valore netto dell'acquisto. Usiamo `SUM` per aggregare i costi.
         """)
 
     with tab_dizionario:
-        st.subheader("Tracciato Record (S/4HANA Schema)")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**EKKO (Testata Ordini)**")
+            st.markdown("**EKKO (Testata)**")
             st.dataframe(get_table_schema("EKKO"), hide_index=True)
-            st.markdown("**LFA1 (Fornitori)**")
-            st.dataframe(get_table_schema("LFA1"), hide_index=True)
         with col2:
-            st.markdown("**EKPO (Posizioni Ordini)**")
+            st.markdown("**EKPO (Posizioni)**")
             st.dataframe(get_table_schema("EKPO"), hide_index=True)
 
     with tab_pratica:
-        st.markdown("### 💻 SQL Sandbox & Analytics Dashboard")
-        user_query = st.text_area("Dialetto PostgreSQL (S/4HANA):", height=200, key="sandbox_mm", value="SELECT * FROM \"EKKO\" LIMIT 50;")
-        if st.button("▶️ Esegui (Run)"):
+        user_query = st.text_area("SQL Sandbox MM:", "SELECT * FROM \"EKKO\" LIMIT 20;")
+        if st.button("▶️ Esegui MM"):
             try:
                 with engine.connect() as conn:
-                    result_df = pd.read_sql(text(user_query), conn)
+                    df = pd.read_sql(text(user_query), conn)
                 write_audit_log(st.session_state.username, "MM", user_query, "SUCCESS")
-                col_tab, col_chart = st.columns(2)
-                with col_tab:
-                    st.dataframe(result_df, use_container_width=True)
-                with col_chart:
-                    if len(result_df.columns) >= 2 and pd.api.types.is_numeric_dtype(result_df[result_df.columns[1]]):
-                        st.markdown("**📊 SAC Story Mode**")
-                        st.bar_chart(result_df.set_index(result_df.columns[0])[result_df.columns[1]], color="#0A6ED1")
-                    else:
-                        st.info("💡 **SAC Hint:** Estrai una seconda colonna numerica per il grafico.")
+                st.dataframe(df)
             except Exception as e:
                 write_audit_log(st.session_state.username, "MM", user_query, "ERROR")
-                st.error(f"❌ Errore SQL: {e}")
+                st.error(e)
 
 # =========================================================================
 # MODULO: FI/CO FINANCIALS
@@ -161,232 +151,161 @@ elif modulo == "FI/CO - Financials":
     tab_teoria, tab_dizionario, tab_pratica = st.tabs(["📚 Master Handbook", "🗄️ Data Dictionary", "⚔️ Live Sandbox"])
     
     with tab_teoria:
-        st.markdown("### 📘 Il Manuale del Data Analyst: Financials")
-        st.markdown("#### 🔴 ADVANCED LEVEL: Logica CASE WHEN per il Bilancio")
-        st.write("La query definitiva per trasformare la logica SAP Dare/Avere in un Saldo algebrico reale per il bilancio (Balance Sheet).")
+        st.markdown("### 📘 Manuale FI: Logiche Contabili in S/4HANA")
+        st.markdown("#### 🟢 BEGINNER: La Partita Doppia")
+        st.write("Le registrazioni contabili sono divise tra Testata (`BKPF`) e Posizioni (`BSEG`).")
+        st.code('SELECT "BELNR", "BUZEI", "SHKZG", "WRBTR" FROM "BSEG" LIMIT 10;', language="sql")
+        st.markdown("""
+        * **BELNR (Belegnummer):** Numero del documento contabile.
+        * **BUZEI (Buchungszeile):** Numero della riga (item) nel documento.
+        * **SHKZG (Soll/Haben Kennzeichen):** Indicatore Dare/Avere. 'S' = Dare, 'H' = Avere.
+        * **WRBTR (Währungsbetrag):** Importo in valuta del documento.
+        """)
+        
+        st.markdown("#### 🔴 ADVANCED: Calcolo Saldo Algebrico")
         st.code("""
-        SELECT "BELNR" AS "Documento",
-               SUM(CASE WHEN "SHKZG" = 'S' THEN "WRBTR" ELSE -"WRBTR" END) AS "Saldo Netto"
+        SELECT "BELNR", 
+               SUM(CASE WHEN "SHKZG" = 'S' THEN "WRBTR" ELSE -"WRBTR" END) AS "Saldo"
         FROM "BSEG" GROUP BY "BELNR";
         """, language="sql")
-        
-        st.markdown("#### 🔬 L'Anatomia della Query (Spiegazione Passo-Passo)")
-        st.markdown("""
-        * **`FROM "BSEG"`**: `BSEG` è il "Libro Giornale" di SAP. Contiene ogni singola riga contabile registrata in azienda.
-        * **`SELECT "BELNR" AS "Documento"`**: `BELNR` è il Numero del Documento Contabile (es. una fattura). Lo rinominiamo "Documento" per la reportistica.
-        * **`CASE WHEN "SHKZG" = 'S' THEN "WRBTR"`**: `SHKZG` è il segno contabile. La lettera 'S' (dal tedesco *Soll*) significa DARE. Se la riga è in Dare, prendiamo il valore in Euro `WRBTR` così com'è (positivo).
-        * **`ELSE -"WRBTR" END`**: Se il segno non è 'S', è 'H' (dal tedesco *Haben*, AVERE). In questo caso, invertiamo il segno matematico dell'importo (`-"WRBTR"`) rendendolo negativo.
-        * **`SUM(...) AS "Saldo Netto"`**: Questa funzione prende tutti i valori positivi e negativi di un documento e li somma. Se la quadratura SAP è corretta (principio della partita doppia), la maggior parte dei saldi dei documenti totali dovrebbe dare zero.
-        * **`GROUP BY "BELNR"`**: Raggruppiamo i calcoli per singolo documento.
-        """)
+        st.write("Questa query trasforma la logica SAP in un saldo reale: se è Avere ('H'), l'importo diventa negativo.")
 
     with tab_dizionario:
-        st.subheader("Tracciato Record (S/4HANA Schema)")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**BKPF (Testata Contabile)**")
-            st.dataframe(get_table_schema("BKPF"), hide_index=True)
-        with col2:
-            st.markdown("**BSEG (Posizioni Contabili / Libro Giornale)**")
-            st.dataframe(get_table_schema("BSEG"), hide_index=True)
+        st.markdown("**BSEG (Document Segments)**")
+        st.dataframe(get_table_schema("BSEG"), hide_index=True)
 
     with tab_pratica:
-        st.markdown("### 💻 SQL Sandbox & Analytics Dashboard")
-        user_query = st.text_area("Dialetto PostgreSQL (S/4HANA):", height=200, key="sandbox_fi", value="SELECT * FROM \"BSEG\" LIMIT 50;")
-        if st.button("▶️ Esegui (Run)"):
+        user_query = st.text_area("SQL Sandbox FI:", "SELECT * FROM \"BSEG\" LIMIT 20;")
+        if st.button("▶️ Esegui FI"):
             try:
                 with engine.connect() as conn:
-                    result_df = pd.read_sql(text(user_query), conn)
+                    df = pd.read_sql(text(user_query), conn)
                 write_audit_log(st.session_state.username, "FI", user_query, "SUCCESS")
-                col_tab, col_chart = st.columns(2)
-                with col_tab:
-                    st.dataframe(result_df, use_container_width=True)
-                with col_chart:
-                    if len(result_df.columns) >= 2 and pd.api.types.is_numeric_dtype(result_df[result_df.columns[1]]):
-                        st.markdown("**📊 SAC Story Mode**")
-                        st.bar_chart(result_df.set_index(result_df.columns[0])[result_df.columns[1]], color="#E74C3C")
-                    else:
-                        st.info("💡 **SAC Hint:** Estrai un valore numerico nella seconda colonna per generare il grafico.")
+                st.dataframe(df)
             except Exception as e:
                 write_audit_log(st.session_state.username, "FI", user_query, "ERROR")
-                st.error(f"❌ Errore SQL: {e}")
+                st.error(e)
 
 # =========================================================================
 # MODULO: SD ORDER TO CASH
 # =========================================================================
 elif modulo == "SD - Order to Cash":
-    st.title("🚚 Modulo SD: Order to Cash")
+    st.title("🚚 Modulo SD: Vendite e Distribuzione")
     tab_teoria, tab_dizionario, tab_pratica = st.tabs(["📚 Master Handbook", "🗄️ Data Dictionary", "⚔️ Live Sandbox"])
     
     with tab_teoria:
-        st.markdown("### 📘 Il Manuale del Data Analyst: Sales")
-        st.markdown("#### 🔴 ADVANCED LEVEL: Profit Margin Analysis (SD-MM)")
-        st.write("Come estrarre il VERO margine di profitto unendo le vendite (SD) ai costi dei materiali (MM).")
-        st.code("""
-        SELECT kna1."NAME1" AS "Cliente",
-               SUM(vbap."NETWR" - (mara."STPRS" * vbap."KWMENG")) AS "Margine Netto EUR"
-        FROM "VBAK" vbak
-        JOIN "VBAP" vbap ON vbak."VBELN" = vbap."VBELN"
-        JOIN "KNA1" kna1 ON vbak."KUNNR" = kna1."KUNNR"
-        JOIN "MARA" mara ON vbap."MATNR" = mara."MATNR"
-        GROUP BY kna1."NAME1" ORDER BY "Margine Netto EUR" DESC;
-        """, language="sql")
-        
-        st.markdown("#### 🔬 L'Anatomia della Query (Spiegazione Passo-Passo)")
+        st.markdown("### 📘 Manuale SD: Il Flusso delle Vendite")
+        st.markdown("#### 🟢 BEGINNER: Anagrafica Clienti")
+        st.write("I dati dei clienti risiedono nella tabella `KNA1`.")
+        st.code('SELECT "KUNNR", "NAME1", "ORT01" FROM "KNA1" LIMIT 10;', language="sql")
         st.markdown("""
-        * **`FROM "VBAK" vbak JOIN "VBAP" vbap ...`**: Partiamo dalla Testata Ordini di Vendita (`VBAK`) e la uniamo alle sue righe interne (`VBAP`) usando `VBELN` (Numero Ordine).
-        * **`JOIN "KNA1" kna1 ...`**: Colleghiamo l'ordine al cliente (`KNA1`) tramite `KUNNR` (Codice Cliente) per mostrare il nome dell'azienda e non un numero anonimo.
-        * **`JOIN "MARA" mara ...`**: Colleghiamo la riga di vendita all'Anagrafica Materiali (`MARA`) tramite `MATNR` (Codice Materiale). Questo è il "ponte" tra vendite e logistica.
-        * **`SUM(vbap."NETWR" - (mara."STPRS" * vbap."KWMENG"))`**: Il cuore analitico. 
-            * `vbap.NETWR` = Quanto ha pagato il cliente (Ricavo).
-            * `mara.STPRS` = Quanto costa a noi produrre 1 pezzo (Prezzo Standard SAP).
-            * `vbap.KWMENG` = Quanti pezzi gli abbiamo venduto.
-            * *Logica:* Ricavo - (Costo Unitario * Quantità) = **Margine di Profitto Puro**.
+        * **KUNNR (Kundennummer):** Codice cliente.
+        * **NAME1:** Nome/Ragione Sociale.
+        * **ORT01:** Città.
         """)
+        
+        st.markdown("#### 🟡 INTERMEDIATE: Fatturato per Cliente")
+        st.code("""
+        SELECT k."NAME1", SUM(p."NETWR") AS "Fatturato"
+        FROM "VBAK" v
+        JOIN "VBAP" p ON v."VBELN" = p."VBELN"
+        JOIN "KNA1" k ON v."KUNNR" = k."KUNNR"
+        GROUP BY k."NAME1";
+        """, language="sql")
+        st.write("Colleghiamo l'ordine (`VBAK`) alle posizioni (`VBAP`) e all'anagrafica (`KNA1`) per calcolare i ricavi.")
 
     with tab_dizionario:
-        st.subheader("Tracciato Record (S/4HANA Schema)")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**VBAK (Testata Vendite)**")
-            st.dataframe(get_table_schema("VBAK"), hide_index=True)
-            st.markdown("**KNA1 (Clienti)**")
-            st.dataframe(get_table_schema("KNA1"), hide_index=True)
-        with col2:
-            st.markdown("**VBAP (Posizioni Vendite)**")
-            st.dataframe(get_table_schema("VBAP"), hide_index=True)
+        st.markdown("**VBAK (Sales Header)**")
+        st.dataframe(get_table_schema("VBAK"), hide_index=True)
 
     with tab_pratica:
-        st.markdown("### 💻 SQL Sandbox & Analytics Dashboard")
-        user_query = st.text_area("Dialetto PostgreSQL (S/4HANA):", height=200, key="sandbox_sd", value="SELECT * FROM \"VBAK\" LIMIT 50;")
-        if st.button("▶️ Esegui (Run)"):
+        user_query = st.text_area("SQL Sandbox SD:", "SELECT * FROM \"VBAK\" LIMIT 20;")
+        if st.button("▶️ Esegui SD"):
             try:
                 with engine.connect() as conn:
-                    result_df = pd.read_sql(text(user_query), conn)
+                    df = pd.read_sql(text(user_query), conn)
                 write_audit_log(st.session_state.username, "SD", user_query, "SUCCESS")
-                col_tab, col_chart = st.columns(2)
-                with col_tab:
-                    st.dataframe(result_df, use_container_width=True)
-                with col_chart:
-                    if len(result_df.columns) >= 2 and pd.api.types.is_numeric_dtype(result_df[result_df.columns[1]]):
-                        st.markdown("**📊 SAC Story Mode**")
-                        st.bar_chart(result_df.set_index(result_df.columns[0])[result_df.columns[1]], color="#2ECC71")
-                    else:
-                        st.info("💡 **SAC Hint:** Estrai i Margini come seconda colonna per il grafico.")
+                st.dataframe(df)
             except Exception as e:
                 write_audit_log(st.session_state.username, "SD", user_query, "ERROR")
-                st.error(f"❌ Errore SQL: {e}")
+                st.error(e)
 
 # =========================================================================
 # MODULO: PM/PP PLANT & PRODUCTION
 # =========================================================================
 elif modulo == "PM/PP - Plant & Production":
-    st.title("🏭 Moduli PM: Gestione Impianti")
+    st.title("🏭 Moduli PM: Gestione Asset e Impianti")
     tab_teoria, tab_dizionario, tab_pratica = st.tabs(["📚 Master Handbook", "🗄️ Data Dictionary", "⚔️ Live Sandbox"])
     
     with tab_teoria:
-        st.markdown("### 📘 Il Manuale del Data Analyst: Asset Management")
-        st.markdown("#### 🔴 ADVANCED LEVEL: Tipologia Guasto (PM01 vs PM02)")
-        st.write("Come separare i costi di Manutenzione a Guasto (Emergenze) dalla Manutenzione Preventiva per Centro di Costo.")
-        st.code("""
-        SELECT csks."KTEXT" AS "Reparto",
-               SUM(CASE WHEN afih."ILART" = 'PM01' THEN afvc."COST_TOT" ELSE 0 END) AS "Emergenze",
-               SUM(CASE WHEN afih."ILART" = 'PM02' THEN afvc."COST_TOT" ELSE 0 END) AS "Prevenzione"
-        FROM "CSKS" csks
-        JOIN "EQUI" equi ON csks."KOSTL" = equi."KOSTL"
-        JOIN "AFIH" afih ON equi."EQUNR" = afih."EQUNR"
-        JOIN "AFVC" afvc ON afih."AUFNR" = afvc."AUFNR"
-        GROUP BY csks."KTEXT";
-        """, language="sql")
-        
-        st.markdown("#### 🔬 L'Anatomia della Query (Spiegazione Passo-Passo)")
+        st.markdown("### 📘 Manuale PM: Manutenzione Impianti")
+        st.markdown("#### 🟢 BEGINNER: Anagrafica Macchinari")
+        st.write("Le attrezzature aziendali sono censite nella tabella `EQUI`.")
+        st.code('SELECT "EQUNR", "EQKTX", "KOSTL" FROM "EQUI" LIMIT 10;', language="sql")
         st.markdown("""
-        * **`FROM "CSKS" ... JOIN "EQUI" ...`**: `CSKS` è l'anagrafica dei Centri di Costo (i reparti fisici). Lo colleghiamo a `EQUI` (i Macchinari fisici) tramite `KOSTL` (Centro di costo).
-        * **`JOIN "AFIH" ... JOIN "AFVC" ...`**: `AFIH` è l'Ordine di Manutenzione (l'intervento). Lo uniamo ad `AFVC`, che contiene le singole operazioni tecniche e i costi orari (`COST_TOT`).
-        * **`CASE WHEN afih."ILART" = 'PM01'`**: `ILART` è il campo SAP per il "Tipo Manutenzione". `PM01` indica un macchinario rotto (Guasto Improvviso). 
-        * **`THEN afvc."COST_TOT" ELSE 0`**: Se è PM01, prendiamo il costo. Se non lo è, aggiungiamo zero (non lo contiamo). Facciamo la stessa cosa in una seconda colonna per `PM02` (Manutenzione Preventiva programmata).
-        * **Risultato:** Il direttore d'impianto vedrà esattamente quali reparti sprecano soldi rincorrendo le emergenze, e quali investono saggiamente in prevenzione.
+        * **EQUNR (Equipmentnummer):** Codice univoco del macchinario.
+        * **EQKTX:** Descrizione tecnica dell'asset.
+        * **KOSTL (Kostenstelle):** Centro di costo responsabile del macchinario.
         """)
+        
+        st.markdown("#### 🔴 ADVANCED: Costi Manutenzione vs Macchinario")
+        st.code("""
+        SELECT e."EQKTX", SUM(v."COST_TOT") AS "Spesa_Riparazioni"
+        FROM "EQUI" e
+        JOIN "AFIH" a ON e."EQUNR" = a."EQUNR"
+        JOIN "AFVC" v ON a."AUFNR" = v."AUFNR"
+        GROUP BY e."EQKTX";
+        """, language="sql")
+        st.write("Analizziamo l'impatto economico degli ordini di manutenzione (`AFIH`) e dei costi operativi (`AFVC`).")
 
     with tab_dizionario:
-        st.subheader("Tracciato Record (S/4HANA Schema)")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**EQUI (Equipment)**")
-            st.dataframe(get_table_schema("EQUI"), hide_index=True)
-            st.markdown("**AFIH (Testata Ordine PM)**")
-            st.dataframe(get_table_schema("AFIH"), hide_index=True)
-        with col2:
-            st.markdown("**CSKS (Centri di Costo)**")
-            st.dataframe(get_table_schema("CSKS"), hide_index=True)
-            st.markdown("**AFVC (Operazioni e Costi PM)**")
-            st.dataframe(get_table_schema("AFVC"), hide_index=True)
+        st.markdown("**EQUI (Equipment Master)**")
+        st.dataframe(get_table_schema("EQUI"), hide_index=True)
 
     with tab_pratica:
-        st.markdown("### 💻 SQL Sandbox & Analytics Dashboard")
-        user_query = st.text_area("Dialetto PostgreSQL (S/4HANA):", height=200, key="sandbox_pm", value="SELECT * FROM \"EQUI\" LIMIT 50;")
-        if st.button("▶️ Esegui (Run)"):
+        user_query = st.text_area("SQL Sandbox PM:", "SELECT * FROM \"EQUI\" LIMIT 20;")
+        if st.button("▶️ Esegui PM"):
             try:
                 with engine.connect() as conn:
-                    result_df = pd.read_sql(text(user_query), conn)
+                    df = pd.read_sql(text(user_query), conn)
                 write_audit_log(st.session_state.username, "PM", user_query, "SUCCESS")
-                col_tab, col_chart = st.columns(2)
-                with col_tab:
-                    st.dataframe(result_df, use_container_width=True)
-                with col_chart:
-                    if len(result_df.columns) >= 2 and pd.api.types.is_numeric_dtype(result_df[result_df.columns[1]]):
-                        st.markdown("**📊 SAC Story Mode**")
-                        st.bar_chart(result_df.set_index(result_df.columns[0])[result_df.columns[1]], color="#F39C12")
-                    else:
-                        st.info("💡 **SAC Hint:** Estrai i Costi nella seconda colonna per generare il grafico.")
+                st.dataframe(df)
             except Exception as e:
                 write_audit_log(st.session_state.username, "PM", user_query, "ERROR")
-                st.error(f"❌ Errore SQL: {e}")
+                st.error(e)
 
 # =========================================================================
-# MODULO: CYBER SECURITY (SM20 AUDIT LOG)
+# MODULO: CYBER SECURITY (SM20)
 # =========================================================================
 elif modulo == "🛡️ Cyber Security (SM20)":
-    st.title("🛡️ Cyber Security: SAP Audit Log (SM20)")
+    st.title("🛡️ Cyber Security Dashboard: SAP Audit Log")
+    st.info("ℹ️ Questa sezione simula la transazione SAP **SM20**. Ogni interazione con il database viene tracciata per garantire l'integrità del sistema e monitorare accessi non autorizzati.")
     
-    st.info("ℹ️ **Privacy Policy & GDPR Compliance:** Nessun dato personale o IP viene salvato. Il sistema assegna un ID ospite anonimo a scopo puramente dimostrativo. I log del database vengono periodicamente resettati.")
-    
-    st.markdown("Questa schermata simula la transazione **SM20 di SAP**. Mostra in tempo reale il monitoraggio del Database: chi si è connesso, quando, in quale modulo e la sintassi esatta delle query eseguite. Uno strumento vitale per la Governance IT e la Data Security.")
-    
+    st.markdown("#### Registro Operazioni (Real-time Database Logs)")
     try:
         query_logs = "SELECT * FROM \"Z_SM20_AUDIT\" ORDER BY \"TIMESTAMP\" DESC LIMIT 100;"
         with engine.connect() as conn:
             df_logs = pd.read_sql(text(query_logs), conn)
         
-        def color_status(val):
+        def highlight_status(val):
             color = '#E74C3C' if val == 'ERROR' else '#2ECC71'
             return f'color: {color}; font-weight: bold'
         
-        st.dataframe(df_logs.style.map(color_status, subset=['STATUS']), use_container_width=True, hide_index=True)
-        
-    except Exception as e:
-        st.info("Nessun log presente al momento. Lancia qualche query nella Sandbox per attivare l'Audit Log!")
+        st.dataframe(df_logs.style.applymap(highlight_status, subset=['STATUS']), use_container_width=True, hide_index=True)
+    except:
+        st.info("Nessun log presente. Esegui una query in un modulo per generare i primi dati di audit!")
 
 # =========================================================================
-# MODULO: DATA IMPORTER (CSV & GEMINI)
+# MODULO: DATA IMPORTER
 # =========================================================================
 elif modulo == "⚙️ Data Importer":
-    st.title("⚙️ Data Importer & Custom Sandbox")
-    st.markdown("Usa questo spazio per caricare dataset esterni.")
-    st.info("💡 **Vuoi generare un dataset fittizio all'istante?** Clicca sul pulsante qui sotto per aprire Gemini, chiedigli di generare un file CSV, e caricalo qui!")
-    st.link_button("🧠 Apri Gemini in una nuova scheda", "https://gemini.google.com")
+    st.title("⚙️ Data Importer: Estendi il tuo S/4HANA")
+    st.write("Carica file CSV per creare nuove tabelle custom (`Z-Tables`).")
+    uploaded_file = st.file_uploader("Scegli un file CSV", type="csv")
+    table_name = st.text_input("Nome tabella SAP (es. Z_TEST):", "Z_CUSTOM_DATA")
     
-    st.markdown("---")
-    uploaded_file = st.file_uploader("Carica il tuo file CSV", type=["csv"])
-    table_name_input = st.text_input("Nome della tabella da creare (es. Z_MY_TABLE):", "Z_CUSTOM_TABLE")
-    
-    if uploaded_file is not None and st.button("☁️ Carica su Database"):
-        try:
-            df_upload = pd.read_csv(uploaded_file)
-            df_upload.to_sql(table_name_input.upper(), engine, if_exists='replace', index=False)
-            write_audit_log(st.session_state.username, "IMPORTER", f"Creata tabella: {table_name_input.upper()}", "SUCCESS")
-            st.success(f"✅ Tabella '{table_name_input.upper()}' creata con successo! ({len(df_upload)} record).")
-            st.dataframe(df_upload.head(3))
-        except Exception as e:
-            write_audit_log(st.session_state.username, "IMPORTER", f"Tentativo creazione tabella fallito", "ERROR")
-            st.error(f"❌ Errore durante il caricamento: {e}")
+    if uploaded_file is not None and st.button("Importa nel Database"):
+        df_up = pd.read_csv(uploaded_file)
+        df_up.to_sql(table_name.upper(), engine, if_exists='replace', index=False)
+        write_audit_log(st.session_state.username, "IMPORTER", f"CREATE TABLE {table_name}", "SUCCESS")
+        st.success(f"Tabella {table_name.upper()} caricata!")
