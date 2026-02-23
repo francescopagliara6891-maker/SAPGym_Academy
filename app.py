@@ -97,8 +97,8 @@ with st.sidebar:
     st.markdown("### 👨‍💻 Lead Architect")
     st.markdown("**Dott. Francesco Pagliara**")
     st.caption("Ingegnere Gestionale")
+    st.caption("Data-Driven Business Analyst")
     st.caption("SAP Functional Analyst")
-    st.caption("Exec. Master Cyber Security Candidate @ LUM")
 
 # =========================================================================
 # MODULO: MM PROCURE TO PAY
