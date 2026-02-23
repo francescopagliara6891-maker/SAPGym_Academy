@@ -221,7 +221,7 @@ elif modulo == "FI/CO - Financials":
             SUM(CASE WHEN "SHKZG" = 'S' THEN "WRBTR" ELSE -"WRBTR" END) AS "Saldo"
         FROM "BSEG" GROUP BY "BELNR";
         """, language="sql")
-        st.info("💡 **Anatomia logica Algebrica:** Il `CASE WHEN` è fondamentale nel modulo FI. Se il segno contabile `SHKZG` è 'S' (Dare, dal tedesco Soll), teniamo l'importo positivo. Altrimenti (Avere, Haben), applichiamo il segno meno `-"WRBTR"`. Il `SUM` raggruppa tutto per verificare se il documento quadra a zero.")
+        st.info("""💡 **Anatomia logica Algebrica:** Il `CASE WHEN` è fondamentale nel modulo FI. Se il segno contabile `SHKZG` è 'S' (Dare, dal tedesco Soll), teniamo l'importo positivo. Altrimenti (Avere, Haben), applichiamo il segno meno `-"WRBTR"`. Il `SUM` raggruppa tutto per verificare se il documento quadra a zero.""")
 
     with tab_dizionario:
         st.subheader("Tracciato Record (S/4HANA Schema)")
